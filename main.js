@@ -1,12 +1,7 @@
-/** @type {HTMLCanvasElement} */
-var canvas = document.getElementById("canvas");
-/** @type {CanvasRenderingContext2D} */
-var ctx = canvas.getContext("2d");
-/** @type {CanvasImageSource} */
-var mineImage = document.getElementById("mineImg");
+const content = document.getElementById("content");
 
-var canvasWidth = 800;
-var canvasHeight = 600;
+var width = 800;
+var height = 600;
 
 var mousePosition;
 var mouseDown;
@@ -38,7 +33,7 @@ document.addEventListener("mousemove", (e) => {
     mousePosition = getMousePosition(e);
 }, false);
 
-canvas.addEventListener("mousedown", (e) => {
+content.addEventListener("mousedown", (e) => {
     // Define the cell that is being clicked
     var gridClick = vector2.parseVector2Int(vector2.div(vector2.sub(mousePosition, origin), vector2.of(cellSize)));
     var arrayClick = -1;
@@ -67,23 +62,21 @@ document.addEventListener("mouseup", (e) => {
     }
 }, false);
 
-canvas.addEventListener("contextmenu", (e) => {
+content.addEventListener("contextmenu", (e) => {
     e.preventDefault();
 }, false);
 
 
 function start() {
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    ctx.translate(0, canvasHeight);
-    ctx.scale(1, -1);
+    content.style.width = `${width}px`;
+    content.style.height = `${height}px`;
 
     mousePosition = new vector2();
     gridSize = new vector2(20, 20);
     cellSize = Math.min(480/gridSize.x, 480/gridSize.y);
     gridBorderWidth = 5;
     tileBorderWidth = cellSize*.1;
-    origin = new vector2(canvasWidth/2 - gridSize.x/2*cellSize, canvasHeight/2 - gridSize.y/2*cellSize);
+    origin = new vector2(width/2 - gridSize.x/2*cellSize, height/2 - gridSize.y/2*cellSize);
     
     for (let y = 0; y < gridSize.y; y++) {
         for (let x = 0; x < gridSize.x; x++) {
@@ -99,54 +92,12 @@ function update() {
         if (!document.hasFocus) mouseDown = false;
 
         draw();
-    }, 1000/60);
+    }, 1000/1);
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    content.innerHTML = "";
 
-    // Draw background
-    ctx.fillStyle = "hsla(0, 0%, 75%)";
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    
-    // Draw border
-    ctx.fillStyle = "hsla(0, 0%, 50%)";
-    ctx.beginPath();
-    ctx.moveTo(origin.x-gridBorderWidth, origin.y-gridBorderWidth);
-    ctx.lineTo(origin.x-gridBorderWidth, origin.y+gridSize.y*cellSize+gridBorderWidth);
-    ctx.lineTo(origin.x+gridSize.x*cellSize+gridBorderWidth, origin.y+gridSize.y*cellSize+gridBorderWidth);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "hsla(0, 0%, 100%)";
-    ctx.beginPath();
-    ctx.moveTo(origin.x-gridBorderWidth, origin.y-gridBorderWidth);
-    ctx.lineTo(origin.x+gridSize.x*cellSize+gridBorderWidth, origin.y-gridBorderWidth);
-    ctx.lineTo(origin.x+gridSize.x*cellSize+gridBorderWidth, origin.y+gridSize.y*cellSize+gridBorderWidth);
-    ctx.closePath();
-    ctx.fill();
-
-    // Draw board background
-    ctx.fillStyle = "hsl(0, 0%, 75%)";
-    ctx.fillRect(origin.x, origin.y, gridSize.x*cellSize, gridSize.y*cellSize);
-
-    // Draw board dividers
-    ctx.lineWidth = 2;
-    for (let y = 1; y < gridSize.y; y++) {
-        ctx.strokeStyle = "hsl(0, 0%, 50%)";
-        ctx.beginPath();
-        ctx.moveTo(origin.x, origin.y+cellSize*y);
-        ctx.lineTo(origin.x+gridSize.x*cellSize, origin.y+cellSize*y);
-        ctx.stroke();
-    }
-    for (let x = 1; x < gridSize.x; x++) {
-        ctx.strokeStyle = "hsl(0, 0%, 50%)";
-        ctx.beginPath();
-        ctx.moveTo(origin.x+cellSize*x, origin.y);
-        ctx.lineTo(origin.x+cellSize*x, origin.y+gridSize.y*cellSize);
-        ctx.stroke();
-    }
-    
     // Draw tiles
     tile.list.forEach(t => {
         t.drawTile();
@@ -209,37 +160,27 @@ function loseGame(targetTile) {
     });
 }
 
-function drawText(string, position, size, boundsEnd = Infinity) {
-    ctx.scale(1, -1);
-    ctx.translate(0, -canvasHeight);
-
-    var targetPosition = position;
-    // Centre text
-    targetPosition.y += boundsEnd.y/2 - size/2;
-    targetPosition.x += + boundsEnd.x/2 - ctx.measureText(string).width/2;
+function drawText(text, size) {
+    const anchor = document.createElement("a");
+    const node = document.createTextNode(text);
+    anchor.appendChild(document.body);
     
     ctx.font = `Bold ${size}pt Arial`;
-    ctx.fillText(string, targetPosition.x, canvasHeight-targetPosition.y);
-    
-    ctx.translate(0, canvasHeight);
-    ctx.scale(1, -1);
+    ctx.fillText(text, targetPosition.x, height-targetPosition.y);
 }
 
 function drawImage(source, position, size) {
-    ctx.scale(1, -1);
-    ctx.translate(0, -canvasHeight);
-
-    ctx.drawImage(source, position.x, canvasHeight-position.y-size.y, size.x, size.y);
+    ctx.drawImage(source, position.x, height-position.y-size.y, size.x, size.y);
     
-    ctx.translate(0, canvasHeight);
+    ctx.translate(0, height);
     ctx.scale(1, -1);
 }
 
 function getMousePosition(e) {
-    var bounds = canvas.getBoundingClientRect();
+    var bounds = content.getBoundingClientRect();
 
-    var mp = new vector2(e.clientX - bounds.left, (e.clientY - bounds.top - canvasHeight)*-1);
-    mp = vector2.clamp(mp, new vector2(0, 0), new vector2(canvasWidth, canvasHeight));
+    var mp = new vector2(e.clientX - bounds.left, (e.clientY - bounds.top - height)*-1);
+    mp = vector2.clamp(mp, new vector2(0, 0), new vector2(width, height));
     mp = vector2.parseVector2Int(mp);
     return mp;
 }
@@ -260,22 +201,26 @@ class tile {
 
     drawTile() {
         if (this.isCovered) {
-            // Draw border
-            ctx.fillStyle = "hsla(0, 0%, 100%)";
-            ctx.beginPath();
-            ctx.moveTo(origin.x+this.position.x*cellSize, origin.y+this.position.y*cellSize);
-            ctx.lineTo(origin.x+this.position.x*cellSize, origin.y+(this.position.y+1)*cellSize);
-            ctx.lineTo(origin.x+(this.position.x+1)*cellSize, origin.y+(this.position.y+1)*cellSize);
-            ctx.closePath();
-            ctx.fill();
-            //
-            ctx.fillStyle = "hsla(0, 0%, 50%)";
-            ctx.beginPath();
-            ctx.moveTo(origin.x+this.position.x*cellSize, origin.y+this.position.y*cellSize);
-            ctx.lineTo(origin.x+(this.position.x+1)*cellSize, origin.y+this.position.y*cellSize);
-            ctx.lineTo(origin.x+(this.position.x+1)*cellSize, origin.y+(this.position.y+1)*cellSize);
-            ctx.closePath();
-            ctx.fill();
+            // // Draw border
+            // ctx.fillStyle = "hsla(0, 0%, 100%)";
+            // ctx.beginPath();
+            // ctx.moveTo(origin.x+this.position.x*cellSize, origin.y+this.position.y*cellSize);
+            // ctx.lineTo(origin.x+this.position.x*cellSize, origin.y+(this.position.y+1)*cellSize);
+            // ctx.lineTo(origin.x+(this.position.x+1)*cellSize, origin.y+(this.position.y+1)*cellSize);
+            // ctx.closePath();
+            // ctx.fill();
+            // //
+            // ctx.fillStyle = "hsla(0, 0%, 50%)";
+            // ctx.beginPath();
+            // ctx.moveTo(origin.x+this.position.x*cellSize, origin.y+this.position.y*cellSize);
+            // ctx.lineTo(origin.x+(this.position.x+1)*cellSize, origin.y+this.position.y*cellSize);
+            // ctx.lineTo(origin.x+(this.position.x+1)*cellSize, origin.y+(this.position.y+1)*cellSize);
+            // ctx.closePath();
+            // ctx.fill();
+
+            const div = document.createElement("div");
+            div.classList.add("tile");
+            content.appendChild(div);
 
             // Draw tile
             ctx.fillStyle = "hsl(0, 0%, 75%)";
