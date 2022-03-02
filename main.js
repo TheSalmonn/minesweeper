@@ -10,7 +10,6 @@ var canvasHeight = 600;
 
 var mousePosition;
 var mouseDown;
-var failedTile;
 
 var origin;
 var gridSize;
@@ -18,13 +17,17 @@ var cellSize;
 var gridBorderWidth;
 var tileBorderWidth;
 
+var coveredTiles;
+var mineCount;
+var failedTile;
+
 var GameState = {
-    initial: 0,
-    playing: 1,
-    win: 2,
-    lose: 3
+    INITIAL: 0,
+    PLAYING: 1,
+    WIN: 2,
+    LOSE: 3
 }
-var gameState = GameState.initial;
+var gameState = GameState.INITIAL;
 
 var GameDifficulty = {
     easy: 0.08,
@@ -50,14 +53,16 @@ canvas.addEventListener("mousedown", (e) => {
         mousePosition = getMousePosition(e);
 
         if (arrayClick != -1 && !tile.list[arrayClick].isFlagged) {
-            if (gameState == GameState.initial) beginGame(arrayClick);
-            if (gameState == GameState.playing) uncoverTile(tile.list[arrayClick]);
-            if (tile.list[arrayClick].isMine) loseGame(tile.list[arrayClick]);
+            if (gameState == GameState.INITIAL) beginGame(arrayClick);
+            if (gameState == GameState.PLAYING) {
+                uncoverTile(tile.list[arrayClick]);
+                if (tile.list[arrayClick].isMine) loseGame(tile.list[arrayClick]);
+            }
         }
     }
     if (e.button == 2) {
         let t = tile.list[arrayClick];
-        if (gameState == GameState.playing && t.isCovered) t.isFlagged = !t.isFlagged;
+        if (gameState == GameState.PLAYING && t.isCovered) t.isFlagged = !t.isFlagged;
     }
 }, false);
 
@@ -79,11 +84,14 @@ function start() {
     ctx.scale(1, -1);
 
     mousePosition = new vector2();
-    gridSize = new vector2(20, 20);
+    gridSize = new vector2(10, 10);
     cellSize = Math.min(480/gridSize.x, 480/gridSize.y);
     gridBorderWidth = 5;
     tileBorderWidth = cellSize*.1;
     origin = new vector2(canvasWidth/2 - gridSize.x/2*cellSize, canvasHeight/2 - gridSize.y/2*cellSize);
+
+    coveredTiles = gridSize.x*gridSize.y
+    mineCount = Math.ceil(coveredTiles*gameDifficulty);
     
     for (let y = 0; y < gridSize.y; y++) {
         for (let x = 0; x < gridSize.x; x++) {
@@ -104,6 +112,7 @@ function update() {
 
 function draw() {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    ctx.lineWidth = cellSize/20;
 
     // Draw background
     ctx.fillStyle = "hsla(0, 0%, 75%)";
@@ -131,7 +140,6 @@ function draw() {
     ctx.fillRect(origin.x, origin.y, gridSize.x*cellSize, gridSize.y*cellSize);
 
     // Draw board dividers
-    ctx.lineWidth = 2;
     for (let y = 1; y < gridSize.y; y++) {
         ctx.strokeStyle = "hsl(0, 0%, 50%)";
         ctx.beginPath();
@@ -159,20 +167,33 @@ function draw() {
     }
 
     // Draw mines
-    if (gameState == GameState.lose) {
+    if (gameState == GameState.LOSE) {
         tile.list.forEach(t => {
             if (t.isMine && !t.isFlagged) drawImage(mineImage, vector2.add(origin, vector2.scale(t.position, cellSize), vector2.of(cellSize*.05)), vector2.of(cellSize*.9));
         });
     }
+
+    // Draw game status
+    switch (gameState) {
+        case GameState.WIN:
+            console.log("win!!!");
+            break;
+            case GameState.LOSE:
+            console.log("lose");
+            break;
+        default:
+            break;
+    }
 }
 
 function beginGame(targetTile) {
-    gameState = GameState.playing;
-    tile.generateMines((gridSize.x*gridSize.y)*gameDifficulty, targetTile);
+    gameState = GameState.PLAYING;
+    tile.generateMines(mineCount, targetTile);
 }
 
 function uncoverTile(targetTile) {
     targetTile.isCovered = false;
+    coveredTiles--;
 
     // Chain uncover island of safe tiles
     if (targetTile.nearMines == 0 && !targetTile.isMine) {
@@ -190,36 +211,50 @@ function uncoverTile(targetTile) {
         iterateForAdjacentSafeTile(targetTile, tile.list[tile.list.indexOf(targetTile) + gridSize.x + 1]); // TR
 
         function iterateForAdjacentSafeTile(t, targetTile) {
-            if (tile.isNearTile(t, targetTile)) {
-                if (targetTile) if (targetTile.isCovered && !targetTile.isMine) {
-                    targetTile.isCovered = false;
-                    if (targetTile.nearMines == 0) uncoverAdjecentSafeTiles(targetTile);
+            if (targetTile) if (targetTile.isCovered && tile.isNearTile(t, targetTile)) {
+                if (!targetTile.isMine) {
+                    uncoverTile(targetTile);
                 }
             }
         }
     }
+
+    // Win condition
+    if (coveredTiles <= mineCount) winGame();
 }
 
 function loseGame(targetTile) {
-    gameState = GameState.lose;
+    gameState = GameState.LOSE;
 
     failedTile = targetTile;
     tile.list.forEach(t => {
-        if (t.isMine && !t.isFlagged) t.isCovered = false;
+        if (t.isMine && !t.isFlagged) {
+            t.isCovered = false;
+        }
+        if (!t.isMine && t.isFlagged) {
+            t.isFlagged = false;
+            t.isCrossed = true;
+        }
     });
 }
 
-function drawText(string, position, size, boundsEnd = Infinity) {
+function winGame() {
+    gameState = GameState.WIN;
+
+
+}
+
+function drawText(text, position, size, boundsEnd = Infinity) {
     ctx.scale(1, -1);
     ctx.translate(0, -canvasHeight);
 
-    var targetPosition = position;
+    var targetPosition = vector2.clone(position);
     // Centre text
     targetPosition.y += boundsEnd.y/2 - size/2;
-    targetPosition.x += + boundsEnd.x/2 - ctx.measureText(string).width/2;
+    targetPosition.x += + boundsEnd.x/2 - ctx.measureText(text).width/2;
     
     ctx.font = `Bold ${size}pt Arial`;
-    ctx.fillText(string, targetPosition.x, canvasHeight-targetPosition.y);
+    ctx.fillText(text, targetPosition.x, canvasHeight-targetPosition.y);
     
     ctx.translate(0, canvasHeight);
     ctx.scale(1, -1);
@@ -250,6 +285,7 @@ class tile {
 
     isCovered = true;
     isFlagged = false;
+    isCrossed = false;
     isMine = false;
     nearMines = 0
 
@@ -287,6 +323,17 @@ class tile {
                 ctx.beginPath();
                 ctx.ellipse(origin.x+cellSize/2+this.position.x*cellSize, origin.y+cellSize/2+this.position.y*cellSize, cellSize/2-cellSize*.2, cellSize/2-cellSize*.2, Math.PI/4, 0, 2*Math.PI);
                 ctx.fill();
+            }
+
+            // Draw cross
+            if (this.isCrossed) {
+                ctx.strokeStyle = "black";
+                ctx.beginPath();
+                ctx.moveTo(origin.x+this.position.x*cellSize+cellSize*.2, origin.y+this.position.y*cellSize+cellSize*.2);
+                ctx.lineTo(origin.x+this.position.x*cellSize+cellSize*.8, origin.y+this.position.y*cellSize+cellSize*.8);
+                ctx.moveTo(origin.x+this.position.x*cellSize+cellSize*.8, origin.y+this.position.y*cellSize+cellSize*.2);
+                ctx.lineTo(origin.x+this.position.x*cellSize+cellSize*.2, origin.y+this.position.y*cellSize+cellSize*.8);
+                ctx.stroke();
             }
         } else {
             if (this.nearMines > 0) {
@@ -350,8 +397,8 @@ class tile {
         
     }
 
-    static isNearTile(t, targetTile, isMine = false) {
-        if (t.position && targetTile) {
+    static isNearTile(t, targetTile = null, isMine = false) {
+        if (targetTile != undefined && t.position != targetTile.position) {
             if (vector2.distance(t.position, targetTile.position) <= vector2.distance(tile.list[0].position, tile.list[gridSize.x+1].position)) {
                 if (isMine) {
                     if (targetTile.isMine) return true;
@@ -376,6 +423,10 @@ class vector2 {
         target.x = parseInt(current.x);
         target.y = parseInt(current.y);
         return target;
+    }
+
+    static clone(v) {
+        return new vector2(v.x, v.y)
     }
 
     static distance(v1, v2) {
