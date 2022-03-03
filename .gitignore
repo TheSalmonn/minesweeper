@@ -1,1 +1,2 @@
-nameoffolder
+*.log
+**/.DS_Store
