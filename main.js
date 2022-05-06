@@ -34,7 +34,7 @@ var GameDifficulty = {
     normal: 0.15,
     hard: 0.20
 }
-var gameDifficulty = GameDifficulty.easy; // Difficulty
+var gameDifficulty = GameDifficulty.normal; // Difficulty
 
 
 document.addEventListener("mousemove", (e) => {    
