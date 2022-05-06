@@ -3,7 +3,7 @@ var canvas = document.getElementById("canvas");
 /** @type {CanvasRenderingContext2D} */
 var ctx = canvas.getContext("2d");
 /** @type {CanvasImageSource} */
-var mineImage = document.getElementById("mineImg");
+// var mineImage = document.getElementById("mineImg");
 
 var canvasWidth = 800;
 var canvasHeight = 600;
