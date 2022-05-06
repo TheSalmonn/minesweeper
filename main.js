@@ -165,11 +165,17 @@ function draw() {
         ctx.fillStyle = "red";
         ctx.fillRect(origin.x+ctx.lineWidth/2+failedTile.position.x*cellSize, origin.y+ctx.lineWidth/2+failedTile.position.y*cellSize, cellSize-ctx.lineWidth, cellSize-ctx.lineWidth);
     }
-
+    
     // Draw mines
     if (gameState == GameState.LOSE) {
+        ctx.fillStyle = "black";
         tile.list.forEach(t => {
-            if (t.isMine && !t.isFlagged) drawImage(mineImage, vector2.add(origin, vector2.scale(t.position, cellSize), vector2.of(cellSize*.05)), vector2.of(cellSize*.9));
+            // if (t.isMine && !t.isFlagged) drawImage(mineImage, vector2.add(origin, vector2.scale(t.position, cellSize), vector2.of(cellSize*.05)), vector2.of(cellSize*.9));
+            if (t.isMine && !t.isFlagged) {
+                ctx.beginPath();
+                ctx.ellipse(origin.x+cellSize/2+t.position.x*cellSize, origin.y+cellSize/2+t.position.y*cellSize, cellSize/2-cellSize*.2, cellSize/2-cellSize*.2, Math.PI/4, 0, 2*Math.PI);
+                ctx.fill();
+            }
         });
     }
 
